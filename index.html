@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador W'BAL - Modelo de Balance de Trabajo Anaeróbico</title>
+    <title>Simulador W'BAL - Modelo de Balance de Trabajo Anaeróbico (ML-092/gb AGMT2 DataSet)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
@@ -391,17 +391,17 @@
                         <div class="control-group">
                             <label>
                                 Potencia de Intervalos
-                                <span class="value-display" id="interval-power-value">350 W</span>
+                                <span class="value-display" id="interval-power-value">250 W</span>
                             </label>
-                            <input type="range" class="slider" id="interval-power-slider" min="200" max="500" value="350">
+                            <input type="range" class="slider" id="interval-power-slider" min="50" max="500" value="250">
                         </div>
 
                         <div class="control-group">
                             <label>
                                 Duración del Intervalo
-                                <span class="value-display" id="interval-duration-value">240 s</span>
+                                <span class="value-display" id="interval-duration-value">300 s</span>
                             </label>
-                            <input type="range" class="slider" id="interval-duration-slider" min="30" max="600" value="240">
+                            <input type="range" class="slider" id="interval-duration-slider" min="30" max="1800" value="300">
                         </div>
 
                         <div class="control-group">
@@ -409,15 +409,15 @@
                                 Potencia de Recuperación
                                 <span class="value-display" id="recovery-power-value">150 W</span>
                             </label>
-                            <input type="range" class="slider" id="recovery-power-slider" min="50" max="250" value="150">
+                            <input type="range" class="slider" id="recovery-power-slider" min="10" max="300" value="150">
                         </div>
 
                         <div class="control-group">
                             <label>
                                 Tiempo de Recuperación
-                                <span class="value-display" id="recovery-duration-value">180 s</span>
+                                <span class="value-display" id="recovery-duration-value">120 s</span>
                             </label>
-                            <input type="range" class="slider" id="recovery-duration-slider" min="30" max="600" value="180">
+                            <input type="range" class="slider" id="recovery-duration-slider" min="10" max="600" value="120">
                         </div>
                     </div>
                 </div>
