@@ -1,4 +1,4 @@
-# Implementación Estocástica del Simulador W'BAL
+# Implementación Estocástica del Simulador W'BAL 
 
 ## 🎯 Objetivo
 
@@ -228,19 +228,6 @@ Tiempo(s),Potencia_Base(W),Potencia_Real(W),CP(W),WBAL(kJ),Tipo_Segmento,Desvio_
 - Interfaces que muestran variabilidad esperada
 - Simulaciones para apps de entrenamiento
 
-## 🚀 Próximas Mejoras
-
-### Funcionalidades Avanzadas
-- [ ] **Cadencia estocástica**: Variabilidad RPM correlacionada
-- [ ] **Temperatura ambiente**: Efecto en variabilidad
-- [ ] **Perfil de fatiga personalizable**: Curvas individuales
-- [ ] **Eventos estocásticos**: Simulación "pinchazos", caídas de potencia
-
-### Validación Adicional
-- [ ] **Comparación con datos PowerTap/SRM**: Validación empírica
-- [ ] **Machine Learning**: Aprendizaje de patrones individuales
-- [ ] **Integración EMG**: Correlación fatiga neuromuscular
-
 ## 📈 Conclusiones
 
 La implementación estocástica transforma un modelo académico en una herramienta práctica que:
@@ -253,5 +240,5 @@ La implementación estocástica transforma un modelo académico en una herramien
 El resultado es un simulador que no solo es científicamente riguroso, sino también visualmente y prácticamente más útil para el mundo real del entrenamiento deportivo de alto rendimiento.
 
 ---
-*Desarrollado por: Simulador W'BAL Estocástico v2.0*  
-*Basado en: Skiba et al. (2012) + Implementación de Variabilidad Fisiológica*
+*Desarrollado por: Gabriel Della Mattia Simulador W'BAL Estocástico v2.0.19*  
+*Basado en: Skiba et al. (2012)*
