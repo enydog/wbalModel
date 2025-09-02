@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador W'BAL - Modelo de Balance de Trabajo Anaeróbico</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1d29 50%, #151b26 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #f8fafc;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .controls-panel {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(51, 65, 85, 0.3);
+            height: fit-content;
+            position: sticky;
+            top: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        .controls-section {
+            margin-bottom: 15px;
+        }
+
+        .controls-section h3 {
+            color: #10b981;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .value-display {
+            color: #3b82f6;
+            font-weight: 600;
+            font-size: 0.85rem;
+            font-feature-settings: 'tnum';
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #334155;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5), 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .controls-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-rows: 1fr;
+            gap: 15px;
+        }
+
+        .chart-wrapper {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(51, 65, 85, 0.3);
+            height: 450px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        .chart-title {
+            color: #f8fafc;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: -0.025em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(51, 65, 85, 0.3);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 4px;
+            font-feature-settings: 'tnum';
+        }
+
+        .metric-label {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #ff7043, #ff5722);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #81c784, #66bb6a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .info-section {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(51, 65, 85, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .info-section h3 {
+            color: #f8fafc;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .info-section p {
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .formula {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+            color: #10b981;
+            margin: 8px 0;
+            border-left: 3px solid #3b82f6;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-panel {
+                position: static;
+            }
+            
+            .controls-content {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            
+            .charts-container {
+                grid-template-rows: auto auto;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .controls-panel {
+                padding: 15px;
+            }
+            
+            .controls-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .exhaustion-indicator {
+            color: #ef4444;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 6px;
+            margin: 8px 0;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Simulador W'BAL</h1>
+            <p>Modelo de Balance de Trabajo Anaeróbico de Skiba et al. (2012)</p>
+        </div>
+
+        <div class="main-grid">
+            <div class="controls-panel">
+                <div class="controls-content">
+                    <div class="controls-section">
+                        <h3>Parámetros Fisiológicos</h3>
+                        
+                        <div class="control-group">
+                            <label>
+                                CP (Critical Power)
+                                <span class="value-display" id="cp-value">250 W</span>
+                            </label>
+                            <input type="range" class="slider" id="cp-slider" min="150" max="400" value="250">
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                W' (Anaerobic Work Capacity)
+                                <span class="value-display" id="wprime-value">20 kJ</span>
+                            </label>
+                            <input type="range" class="slider" id="wprime-slider" min="10" max="30" value="20">
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                τ (Tau - Constante de Recuperación)
+                                <span class="value-display" id="tau-value">316 s</span>
+                            </label>
+                            <input type="range" class="slider" id="tau-slider" min="200" max="600" value="316">
+                        </div>
+                    </div>
+
+                    <div class="controls-section">
+                        <h3>Protocolo de Intervalos</h3>
+                        
+                        <div class="control-group">
+                            <label>
+                                Número de Intervalos
+                                <span class="value-display" id="intervals-value">5</span>
+                            </label>
+                            <input type="range" class="slider" id="intervals-slider" min="1" max="10" value="5">
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                Potencia de Intervalos
+                                <span class="value-display" id="interval-power-value">350 W</span>
+                            </label>
+                            <input type="range" class="slider" id="interval-power-slider" min="200" max="500" value="350">
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                Duración del Intervalo
+                                <span class="value-display" id="interval-duration-value">240 s</span>
+                            </label>
+                            <input type="range" class="slider" id="interval-duration-slider" min="30" max="600" value="240">
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                Potencia de Recuperación
+                                <span class="value-display" id="recovery-power-value">150 W</span>
+                            </label>
+                            <input type="range" class="slider" id="recovery-power-slider" min="50" max="250" value="150">
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                Tiempo de Recuperación
+                                <span class="value-display" id="recovery-duration-value">180 s</span>
+                            </label>
+                            <input type="range" class="slider" id="recovery-duration-slider" min="30" max="600" value="180">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="reset-btn" onclick="resetToDefaults()">Resetear Valores por Defecto</button>
+                <button class="export-btn" onclick="exportToCSV()">📊 Exportar Datos CSV</button>
+                
+                <div id="exhaustion-warning" class="exhaustion-indicator" style="display: none;">
+                    ⚠️ AGOTAMIENTO ALCANZADO - W'BAL = 0
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-wrapper">
+                    <div class="chart-title">Potencia y W'BAL vs Tiempo</div>
+                    <canvas id="combinedChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value" id="tte-value">∞</div>
+                <div class="metric-label">TTE (Time to Exhaustion)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="total-work-value">0</div>
+                <div class="metric-label">Trabajo Total (kJ)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="anaerobic-work-value">0</div>
+                <div class="metric-label">Trabajo Anaeróbico (kJ)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="min-wbal-value">20</div>
+                <div class="metric-label">W'BAL Mínimo (kJ)</div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Acerca del Modelo W'BAL</h3>
+            <p>
+                El modelo W'BAL (Work Balance) desarrollado por Skiba et al. (2012) cuantifica la disponibilidad 
+                de capacidad de trabajo anaeróbico durante el ejercicio intermitente. Este modelo es fundamental 
+                para entender la fatiga y optimizar el rendimiento en deportes de resistencia.
+            </p>
+            
+            <div class="formula">
+                W'BAL(t) = W' - ∫[max(0, P(u) - CP)]du  (para P > CP)
+            </div>
+            
+            <div class="formula">
+                dW'BAL/dt = (W' - W'BAL(t))/τ  (para P ≤ CP)
+            </div>
+            
+            <p>
+                <strong>CP (Critical Power):</strong> Máxima potencia sostenible indefinidamente<br>
+                <strong>W' (W-prime):</strong> Capacidad de trabajo anaeróbico finita<br>
+                <strong>τ (Tau):</strong> Constante de tiempo de recuperación del W'BAL
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let combinedChart;
+        let parameters = {
+            cp: 250,
+            wprime: 20000, // en Julios
+            tau: 316,
+            intervals: 5,
+            intervalPower: 350,
+            intervalDuration: 240,
+            recoveryPower: 150,
+            recoveryDuration: 180
+        };
+
+        let simulationData = null;
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSliders();
+            initializeCharts();
+            updateSimulation();
+        });
+
+        function initializeSliders() {
+            // Parámetros fisiológicos
+            document.getElementById('cp-slider').addEventListener('input', function() {
+                parameters.cp = parseInt(this.value);
+                document.getElementById('cp-value').textContent = `${parameters.cp} W`;
+                updateSimulation();
+            });
+
+            document.getElementById('wprime-slider').addEventListener('input', function() {
+                parameters.wprime = parseInt(this.value) * 1000; // convertir kJ a J
+                document.getElementById('wprime-value').textContent = `${parseInt(this.value)} kJ`;
+                updateSimulation();
+            });
+
+            document.getElementById('tau-slider').addEventListener('input', function() {
+                parameters.tau = parseInt(this.value);
+                document.getElementById('tau-value').textContent = `${parameters.tau} s`;
+                updateSimulation();
+            });
+
+            // Protocolo de intervalos
+            document.getElementById('intervals-slider').addEventListener('input', function() {
+                parameters.intervals = parseInt(this.value);
+                document.getElementById('intervals-value').textContent = parameters.intervals;
+                updateSimulation();
+            });
+
+            document.getElementById('interval-power-slider').addEventListener('input', function() {
+                parameters.intervalPower = parseInt(this.value);
+                document.getElementById('interval-power-value').textContent = `${parameters.intervalPower} W`;
+                updateSimulation();
+            });
+
+            document.getElementById('interval-duration-slider').addEventListener('input', function() {
+                parameters.intervalDuration = parseInt(this.value);
+                document.getElementById('interval-duration-value').textContent = `${parameters.intervalDuration} s`;
+                updateSimulation();
+            });
+
+            document.getElementById('recovery-power-slider').addEventListener('input', function() {
+                parameters.recoveryPower = parseInt(this.value);
+                document.getElementById('recovery-power-value').textContent = `${parameters.recoveryPower} W`;
+                updateSimulation();
+            });
+
+            document.getElementById('recovery-duration-slider').addEventListener('input', function() {
+                parameters.recoveryDuration = parseInt(this.value);
+                document.getElementById('recovery-duration-value').textContent = `${parameters.recoveryDuration} s`;
+                updateSimulation();
+            });
+        }
+
+        function initializeCharts() {
+            // Gráfico combinado
+            const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+            combinedChart = new Chart(combinedCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Potencia (W)',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                        borderWidth: 1,
+                        fill: false,
+                        tension: 0.2,
+                        yAxisID: 'y',
+                        pointRadius: 0
+                    }, {
+                        label: 'Critical Power',
+                        data: [],
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0,
+                        yAxisID: 'y'
+                    }, {
+                        label: "W'BAL (kJ)",
+                        data: [],
+                        borderColor: '#ec4899',
+                        backgroundColor: 'rgba(236, 72, 153, 0.08)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.1,
+                        yAxisID: 'y1',
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0',
+                                font: {
+                                    family: 'Inter',
+                                    weight: 500
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tiempo (s)',
+                                color: '#e2e8f0'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(51, 65, 85, 0.2)'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Potencia (W)',
+                                color: '#e2e8f0'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(51, 65, 85, 0.2)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: "W'BAL (kJ)",
+                                color: '#ec4899'
+                            },
+                            ticks: {
+                                color: '#ec4899'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            min: 0
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function calculateWBAL() {
+            const dt = 1; // paso de tiempo en segundos
+            const totalTime = parameters.intervals * (parameters.intervalDuration + parameters.recoveryDuration);
+            
+            let timeData = [];
+            let powerData = [];
+            let wbalData = [];
+            let cpData = [];
+            
+            let currentWBAL = parameters.wprime;
+            let totalWork = 0;
+            let anaerobicWork = 0;
+            let minWBAL = parameters.wprime;
+            let exhaustionTime = null;
+            let previousPower = 0; // Para suavizar transiciones
+            
+            for (let t = 0; t <= totalTime; t += dt) {
+                timeData.push(t);
+                
+                // Determinar la potencia target base
+                let targetPower = 0;
+                let cycleTime = parameters.intervalDuration + parameters.recoveryDuration;
+                let timeInCycle = t % cycleTime;
+                let currentInterval = Math.floor(t / cycleTime);
+                
+                if (currentInterval < parameters.intervals) {
+                    if (timeInCycle < parameters.intervalDuration) {
+                        targetPower = parameters.intervalPower;
+                    } else {
+                        targetPower = parameters.recoveryPower;
+                    }
+                }
+                
+                // Detectar transiciones y aplicar suavizado estocástico más realista
+                let transitionFactor = 1.0;
+                let isTransition = false;
+                
+                if (currentInterval < parameters.intervals) {
+                    // Transición de recuperación a intervalo (subida progresiva)
+                    if (timeInCycle <= 8) { // Primeros 8 segundos del intervalo
+                        let progress = timeInCycle / 8;
+                        // Curva sigmoidal suave con ruido menor
+                        let sigmoid = 1 / (1 + Math.exp(-6 * (progress - 0.5)));
+                        let transitionNoise = (Math.random() - 0.5) * 0.15; // ±7.5% ruido
+                        transitionFactor = Math.max(0.3, Math.min(1.0, sigmoid + transitionNoise));
+                        isTransition = true;
+                    }
+                    // Transición de intervalo a recuperación (bajada MUY gradual)
+                    else if (timeInCycle >= parameters.intervalDuration && 
+                            timeInCycle <= parameters.intervalDuration + 15) { // 15 segundos de transición gradual
+                        let progress = (timeInCycle - parameters.intervalDuration) / 15;
+                        
+                        // Curva de decaimiento mucho más suave y lenta
+                        let smoothDecay = Math.exp(-1.5 * progress); // Decaimiento más lento
+                        
+                        // Ruido muy controlado para transición realista
+                        let transitionNoise = (Math.random() - 0.5) * 0.1; // Solo ±5% ruido
+                        
+                        // Interpolación suave entre potencias
+                        let intervalPower = parameters.intervalPower;
+                        let recoveryPower = parameters.recoveryPower;
+                        
+                        // Transición sigmoideal inversa para bajada natural
+                        let sigmoidDecay = 1 / (1 + Math.exp(4 * (progress - 0.7))); // Cambio gradual hacia el final
+                        
+                        targetPower = intervalPower * sigmoidDecay * smoothDecay + 
+                                     recoveryPower * (1 - sigmoidDecay * smoothDecay);
+                        
+                        // Factor muy controlado
+                        transitionFactor = 0.95 + (Math.random() * 0.1); // Entre 95% y 105%
+                        isTransition = true;
+                    }
+                    // Post-transición: primeros momentos de recuperación estable
+                    else if (timeInCycle > parameters.intervalDuration + 15 && 
+                            timeInCycle <= parameters.intervalDuration + 25) {
+                        // Pequeñas fluctuaciones mientras se estabiliza
+                        transitionFactor = 0.98 + (Math.random() * 0.04); // Entre 98% y 102%
+                        isTransition = true;
+                    }
+                }
+                
+                // Aplicar factor de transición
+                let basePower = targetPower * transitionFactor;
+                
+                // Aplicar ruido estocástico
+                let currentPower = basePower;
+                
+                if (currentInterval < parameters.intervals && basePower > 5) {
+                    // Calcular desviación estándar progresiva
+                    let baseStdDev = 0.05; // 5% base
+                    let timeMinutes = t / 60;
+                    let additionalStdDev = Math.floor(timeMinutes / 4) * 0.01; // 1% cada 4 minutos
+                    let totalStdDev = baseStdDev + additionalStdDev;
+                    
+                    // Mayor variabilidad durante transiciones
+                    if (isTransition) {
+                        totalStdDev *= 2.0; // 100% más variabilidad en transiciones
+                    }
+                    
+                    // Generar ruido gaussiano con mayor intensidad
+                    let noise = 0;
+                    for (let i = 0; i < 3; i++) {
+                        let u1 = Math.random();
+                        let u2 = Math.random();
+                        u1 = Math.max(u1, 1e-10);
+                        u2 = Math.max(u2, 1e-10);
+                        let z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                        noise += z0;
+                    }
+                    noise = noise / 3;
+                    
+                    // Aplicar ruido
+                    let powerVariation = noise * totalStdDev * basePower;
+                    currentPower = basePower + powerVariation;
+                    
+                    // Limitar variación
+                    let maxVariation = basePower * (totalStdDev * 2.0);
+                    currentPower = Math.max(basePower - maxVariation, 
+                                          Math.min(basePower + maxVariation, currentPower));
+                    
+                    // Micro-fluctuaciones más intensas
+                    let microNoise = (Math.random() - 0.5) * basePower * 0.04; // ±4% micro fluctuaciones
+                    currentPower += microNoise;
+                    
+                    // Suavizado menos agresivo para mantener más variabilidad
+                    let smoothingFactor = isTransition ? 0.5 : 0.8; // Menos suavizado
+                    currentPower = previousPower * (1 - smoothingFactor) + currentPower * smoothingFactor;
+                }
+                
+                // Asegurar potencia mínima
+                currentPower = Math.max(0, currentPower);
+                previousPower = currentPower;
+                
+                powerData.push(currentPower);
+                cpData.push(parameters.cp);
+                
+                // Calcular cambio en W'BAL usando la potencia estocástica real
+                if (currentPower > parameters.cp) {
+                    // Depleción de W'BAL basada en la potencia real (con ruido)
+                    const anaerobicPowerDemand = currentPower - parameters.cp;
+                    const wbalDepletion = anaerobicPowerDemand * dt;
+                    currentWBAL = Math.max(0, currentWBAL - wbalDepletion);
+                    anaerobicWork += wbalDepletion;
+                } else {
+                    // Recuperación de W'BAL - también con ligera variabilidad
+                    if (currentWBAL < parameters.wprime) {
+                        let baseRecoveryRate = (parameters.wprime - currentWBAL) / parameters.tau;
+                        
+                        // Agregar variabilidad a la recuperación (±5%)
+                        let recoveryNoise = 1.0 + (Math.random() - 0.5) * 0.1;
+                        let actualRecoveryRate = baseRecoveryRate * recoveryNoise;
+                        
+                        currentWBAL = Math.min(parameters.wprime, currentWBAL + actualRecoveryRate * dt);
+                    }
+                }
+                
+                // Trabajo total
+                totalWork += currentPower * dt;
+                
+                // Tracking del W'BAL mínimo
+                if (currentWBAL < minWBAL) {
+                    minWBAL = currentWBAL;
+                }
+                
+                // Detectar agotamiento
+                if (currentWBAL <= 0 && exhaustionTime === null) {
+                    exhaustionTime = t;
+                }
+                
+                wbalData.push(currentWBAL / 1000); // convertir a kJ para visualización
+            }
+            
+            return {
+                timeData,
+                powerData,
+                wbalData,
+                cpData,
+                totalWork: totalWork / 1000, // kJ
+                anaerobicWork: anaerobicWork / 1000, // kJ
+                minWBAL: minWBAL / 1000, // kJ
+                exhaustionTime
+            };
+        }
+
+        function updateSimulation() {
+            const results = calculateWBAL();
+            simulationData = results; // Guardar datos para exportación
+            
+            // Actualizar gráfico combinado
+            combinedChart.data.labels = results.timeData;
+            combinedChart.data.datasets[0].data = results.powerData;
+            combinedChart.data.datasets[1].data = results.cpData;
+            combinedChart.data.datasets[2].data = results.wbalData;
+            combinedChart.update('none');
+            
+            // Actualizar métricas
+            if (results.exhaustionTime !== null) {
+                document.getElementById('tte-value').textContent = `${Math.round(results.exhaustionTime)} s`;
+                document.getElementById('exhaustion-warning').style.display = 'block';
+            } else {
+                document.getElementById('tte-value').textContent = '∞';
+                document.getElementById('exhaustion-warning').style.display = 'none';
+            }
+            
+            document.getElementById('total-work-value').textContent = `${results.totalWork.toFixed(1)} kJ`;
+            document.getElementById('anaerobic-work-value').textContent = `${results.anaerobicWork.toFixed(1)} kJ`;
+            document.getElementById('min-wbal-value').textContent = `${results.minWBAL.toFixed(1)} kJ`;
+        }
+
+        function resetToDefaults() {
+            // Resetear parámetros
+            parameters = {
+                cp: 250,
+                wprime: 20000,
+                tau: 316,
+                intervals: 5,
+                intervalPower: 350,
+                intervalDuration: 240,
+                recoveryPower: 150,
+                recoveryDuration: 180
+            };
+            
+            // Resetear sliders
+            document.getElementById('cp-slider').value = 250;
+            document.getElementById('wprime-slider').value = 20;
+            document.getElementById('tau-slider').value = 316;
+            document.getElementById('intervals-slider').value = 5;
+            document.getElementById('interval-power-slider').value = 350;
+            document.getElementById('interval-duration-slider').value = 240;
+            document.getElementById('recovery-power-slider').value = 150;
+            document.getElementById('recovery-duration-slider').value = 180;
+            
+            // Actualizar displays
+            document.getElementById('cp-value').textContent = '250 W';
+            document.getElementById('wprime-value').textContent = '20 kJ';
+            document.getElementById('tau-value').textContent = '316 s';
+            document.getElementById('intervals-value').textContent = '5';
+            document.getElementById('interval-power-value').textContent = '350 W';
+            document.getElementById('interval-duration-value').textContent = '240 s';
+            document.getElementById('recovery-power-value').textContent = '150 W';
+            document.getElementById('recovery-duration-value').textContent = '180 s';
+            
+            // Actualizar simulación
+            updateSimulation();
+        }
+
+        function exportToCSV() {
+            if (!simulationData) {
+                alert('No hay datos para exportar. Por favor, ajusta los parámetros primero.');
+                return;
+            }
+
+            // Crear encabezados CSV
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Tiempo(s),Potencia_Base(W),Potencia_Real(W),CP(W),WBAL(kJ),Tipo_Segmento,Desvio_STD(%)\n";
+
+            // Agregar datos
+            for (let i = 0; i < simulationData.timeData.length; i++) {
+                const tiempo = simulationData.timeData[i];
+                const potenciaReal = simulationData.powerData[i];
+                const cp = simulationData.cpData[i];
+                const wbal = simulationData.wbalData[i];
+                
+                // Calcular potencia base (sin ruido)
+                let potenciaBase = 0;
+                let cycleTime = parameters.intervalDuration + parameters.recoveryDuration;
+                let timeInCycle = tiempo % cycleTime;
+                let currentInterval = Math.floor(tiempo / cycleTime);
+                
+                if (currentInterval < parameters.intervals) {
+                    if (timeInCycle < parameters.intervalDuration) {
+                        potenciaBase = parameters.intervalPower;
+                    } else {
+                        potenciaBase = parameters.recoveryPower;
+                    }
+                }
+                
+                // Calcular desviación estándar actual (actualizada)
+                let baseStdDev = 5.0; // 5% base
+                let timeMinutes = tiempo / 60;
+                let additionalStdDev = Math.floor(timeMinutes / 4) * 1.0; // 1% cada 4 minutos
+                let totalStdDev = baseStdDev + additionalStdDev;
+                
+                // Determinar tipo de segmento
+                let tipoSegmento = "Reposo";
+                if (potenciaBase > parameters.recoveryPower) {
+                    tipoSegmento = "Intervalo";
+                } else if (potenciaBase > 0) {
+                    tipoSegmento = "Recuperacion";
+                }
+
+                csvContent += `${tiempo},${potenciaBase},${potenciaReal.toFixed(1)},${cp},${wbal.toFixed(3)},${tipoSegmento},${totalStdDev.toFixed(2)}\n`;
+            }
+
+            // Agregar información de parámetros al final
+            csvContent += "\n# Parametros del Protocolo:\n";
+            csvContent += `# CP,${parameters.cp}W\n`;
+            csvContent += `# W_prima,${parameters.wprime/1000}kJ\n`;
+            csvContent += `# Tau,${parameters.tau}s\n`;
+            csvContent += `# Num_Intervalos,${parameters.intervals}\n`;
+            csvContent += `# Potencia_Intervalos,${parameters.intervalPower}W\n`;
+            csvContent += `# Duracion_Intervalos,${parameters.intervalDuration}s\n`;
+            csvContent += `# Potencia_Recuperacion,${parameters.recoveryPower}W\n`;
+            csvContent += `# Tiempo_Recuperacion,${parameters.recoveryDuration}s\n`;
+            csvContent += `# Desvio_Base,5.0%\n`;
+            csvContent += `# Incremento_Desvio,1.0% cada 4min\n`;
+            
+            if (simulationData.exhaustionTime) {
+                csvContent += `# Tiempo_Agotamiento,${simulationData.exhaustionTime.toFixed(1)}s\n`;
+            }
+            csvContent += `# Trabajo_Total,${simulationData.totalWork.toFixed(1)}kJ\n`;
+            csvContent += `# Trabajo_Anaerobico,${simulationData.anaerobicWork.toFixed(1)}kJ\n`;
+
+            // Crear y descargar archivo
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            
+            // Nombre del archivo con timestamp
+            const fecha = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+            link.setAttribute("download", `WBAL_Protocolo_Estocastico_${fecha}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
